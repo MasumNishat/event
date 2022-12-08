@@ -96,6 +96,7 @@ public final class Event {
     /**
      * Call all {@link Listener}s of this {@link Event}.
      * @param payload {@link Object}
+     * @throws Throwable if {@link Listener} throws error from implementation
      */
     public void call(Object payload) throws Throwable {
         synchronized (this) {

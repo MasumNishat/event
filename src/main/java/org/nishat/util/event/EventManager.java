@@ -260,7 +260,7 @@ public class EventManager {
     /**
      * List of all available {@link EventGroup}. Uses:
      * <pre>
-     *     ArrayList&lt;EventGroup> evgs = listGroup();
+     *     ArrayList&lt;EventGroup&gt; evgs = listGroup();
      * </pre>
      * @return {@link ArrayList}&lt;{@link EventGroup}&gt;
      */
