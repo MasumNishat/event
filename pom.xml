@@ -152,7 +152,7 @@
         <dependency>
             <groupId>org.nishat.util</groupId>
             <artifactId>log</artifactId>
-            <version>1.5.17</version>
+            <version>1.5.18</version>
         </dependency>
     </dependencies>
 

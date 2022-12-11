@@ -1,5 +1,7 @@
 package org.nishat.util.event;
 
+import org.nishat.util.log.Log;
+
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -73,7 +75,9 @@ public final class Event {
      */
     public void addListener(Listener listener) {
         Objects.requireNonNull(listener);
+        Log.i("Registering Listener",listener.getId()+"[Event:"+name()+"]]");
         listeners.put(listener.getId(), listener);
+        Log.i("Registered Listener",listener.getId()+"[Event:"+name()+"]]");
     }
 
     /**
@@ -82,7 +86,9 @@ public final class Event {
      */
     public void removeListener(Listener listener) {
         Objects.requireNonNull(listener);
+        Log.i("Removing Listener",listener.getId()+"[Event:"+name()+"]]");
         listeners.remove(listener.getId());
+        Log.i("Removed Listener",listener.getId()+"[Event:"+name()+"]]");
     }
 
     /**
@@ -90,7 +96,9 @@ public final class Event {
      * @param id {@link String}
      */
     public void removeListener(String id) {
+        Log.i("Removing Listener",id+"[Event:"+name()+"]]");
         listeners.remove(id);
+        Log.i("Removed Listener",id+"[Event:"+name()+"]]");
     }
 
     /**
@@ -102,7 +110,9 @@ public final class Event {
         synchronized (this) {
             ConcurrentHashMap<String, Listener> listeners = new ConcurrentHashMap<>(this.listeners);
             for (Listener listener : listeners.values()) {
+                Log.i("Calling Listener",listener.getId()+"[Event:"+name()+"]]");
                 listener.exec(payload);
+                Log.i("Called Listener",listener.getId()+"[Event:"+name()+"]]");
                 if (breakLoop) {
                     breakLoop = false;
                     break;
