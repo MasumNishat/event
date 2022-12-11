@@ -4,7 +4,7 @@
 
     <groupId>org.nishat.util</groupId>
     <artifactId>event</artifactId>
-    <version>1.0.2</version>
+    <version>1.0.3-SNAPSHOT</version>
 
 
     <name>${project.groupId}:${project.artifactId}</name>
@@ -33,7 +33,7 @@
         <!--        <connection>scm:git:git@github.com:MasumNishat/event.git</connection>-->
         <!--        <developerConnection>scm:git:git@github.com:MasumNishat/event.git</developerConnection>-->
         <url>http://github.com/MasumNishat/event</url>
-      <tag>v1.0.2</tag>
+      <tag>HEAD</tag>
   </scm>
 
     <properties>
