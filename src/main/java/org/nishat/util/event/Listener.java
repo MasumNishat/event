@@ -48,4 +48,14 @@ public abstract class Listener {
     public final String getId() {
         return id;
     }
+
+    /**
+     * Execute after calling {@link Listener}
+     */
+    public void doAfterCall() {}
+
+    /**
+     * Execute before calling {@link Listener}
+     */
+    public void doBeforeCall() {}
 }

@@ -2,8 +2,13 @@ package org.nishat.util.event;
 
 import org.nishat.util.log.Log;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Consumer;
+import java.util.function.Function;
 
 /**
  * {@link Event} is an  {@link Event} to run {@link Listener}s. Example:
@@ -52,6 +57,11 @@ public final class Event {
     private final String name;
     private final ConcurrentHashMap<String, Listener> listeners = new ConcurrentHashMap<>();
     private boolean breakLoop = false;
+    private List<String> groupName = Collections.synchronizedList(new ArrayList<>());
+    private Consumer<Event> doAfterEachCall;
+    private Consumer<Event> doBeforeEachCall;
+    private Consumer<Listener> doAfterEachListenerCall;
+    private Consumer<Listener> doBeforeEachListenerCall;
 
     /**
      * Create new {@link Event}
@@ -108,16 +118,22 @@ public final class Event {
      */
     public void call(Object payload) throws Throwable {
         synchronized (this) {
+            if (this.doBeforeEachCall != null) this.doBeforeEachCall.accept(this);
             ConcurrentHashMap<String, Listener> listeners = new ConcurrentHashMap<>(this.listeners);
             for (Listener listener : listeners.values()) {
                 Log.i("Calling Listener",listener.getId()+"[Event:"+name()+"]]");
+                if (this.doBeforeEachListenerCall != null) this.doBeforeEachListenerCall.accept(listener);
+                listener.doBeforeCall();
                 listener.exec(payload);
+                listener.doAfterCall();
+                if (this.doAfterEachListenerCall != null) this.doAfterEachListenerCall.accept(listener);
                 Log.i("Called Listener",listener.getId()+"[Event:"+name()+"]]");
                 if (breakLoop) {
                     breakLoop = false;
                     break;
                 }
             }
+            if (this.doAfterEachCall != null) this.doAfterEachCall.accept(this);
         }
     }
 
@@ -177,5 +193,58 @@ public final class Event {
      */
     public boolean hasListener(Listener listener) {
         return listeners.containsKey(listener.getId());
+    }
+
+    public Event setGroupName(String groupName) {
+        Objects.requireNonNull(groupName);
+        if (groupName.trim().equals("")) throw new RuntimeException("Group name should not be empty");
+        this.groupName.add(groupName);
+        return this;
+    }
+
+    public List<String> getGroupNames() {
+        return Collections.synchronizedList(groupName);
+    }
+
+    /**
+     * Removing group from {@link Event} will not unregister event from respective group. It is required to unregister from group also.
+     * @param groupName {@link String}
+     */
+    public void removeGroup(String groupName) {
+        Objects.requireNonNull(groupName);
+        if (groupName.trim().equals("")) throw new RuntimeException("Group name should not be empty");
+        this.groupName.remove(groupName);
+    }
+
+    /**
+     * Execute a function after each time calling all {@link Listener}. It is not dependent on number of {@link Listener} registered.
+     * @param function {@link Consumer}&lt;{@link Event}&gt;
+     */
+    public void doAfterEachCall(Consumer<Event> function) {
+        this.doAfterEachCall = function;
+    }
+
+    /**
+     * Execute a function before each time calling all {@link Listener}. It is not dependent on number of {@link Listener} registered.
+     * @param function {@link Consumer}&lt;{@link Event}&gt;
+     */
+    public void doBeforeEachCall(Consumer<Event> function) {
+        this.doBeforeEachCall = function;
+    }
+
+    /**
+     * Execute a function after calling every single {@link Listener}
+     * @param function {@link Consumer}&lt;{@link Listener}&gt;
+     */
+    public void doAfterEachListenerCall(Consumer<Listener> function) {
+        this.doAfterEachListenerCall = function;
+    }
+
+    /**
+     * Execute a function before calling every single {@link Listener}
+     * @param function {@link Consumer}&lt;{@link Listener}&gt;
+     */
+    public void doBeforeEachListenerCall(Consumer<Listener> function) {
+        this.doBeforeEachListenerCall = function;
     }
 }

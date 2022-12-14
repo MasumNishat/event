@@ -3,8 +3,8 @@ package org.nishat.util.event;
 import org.nishat.util.log.Log;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * {@link EventManager} is a manager to manage {@link Event}/{@link Listener}. Example:
@@ -38,7 +38,11 @@ import java.util.Objects;
  *      }
  *
  *      //call {@link Event}
- *
+ *      try {
+ *             EventManager.getInstance().getEvent("foo").call(null);
+ *         } catch (Throwable e) {
+ *             e.printStackTrace();
+ *         }
  *
  *
  * </pre>
@@ -46,7 +50,7 @@ import java.util.Objects;
 public class EventManager {
     private static EventManager single_instance = null;
 
-    private final HashMap<String, EventGroup> groups = new HashMap<String, EventGroup>(){{
+    private final ConcurrentHashMap<String, EventGroup> groups = new ConcurrentHashMap<String, EventGroup>(){{
         put("default", new EventGroup() {
             /**
              * Get name of {@link EventGroup}
@@ -117,7 +121,12 @@ public class EventManager {
     public void registerEvent(Event event) {
         Log.i("Registering Event",event.name());
         Objects.requireNonNull(event);
-        registerEvent("default", event);
+        if (event.getGroupNames().size() > 0)
+            throw new RuntimeException("Event: "+event.name()+" has predefined group. To register this event in " +
+                    "different group, you should use registerEvent(String, Event) function.");
+        else {
+            registerEvent("default", event);
+        }
         Log.i("Registered Event",event.name());
     }
 
@@ -132,10 +141,11 @@ public class EventManager {
      * @param event {@link Event}
      */
     public void registerEvent(String group, Event event) {
-        Log.i("Registering Event",event.name()+"[Group: "+group+"]");
         Objects.requireNonNull(event);
         Objects.requireNonNull(group);
         if (group.trim().equals("")) throw new RuntimeException("Group should not be empty");
+        Log.i("Registering Event",event.name()+"[Group: "+group+"]");
+
         if (!groups.containsKey(group)) {
             Log.i("Registering Group", group);
             groups.put(group, new EventGroup() {
@@ -150,7 +160,7 @@ public class EventManager {
             });
             Log.i("Registered Group", group);
         }
-        groups.get(group).addOrUpdate(event);
+        groups.get(group).addOrUpdate(event.setGroupName(group));
         Log.i("Registered Event",event.name()+"[Group: "+group+"]");
     }
 
@@ -180,9 +190,10 @@ public class EventManager {
             groups.put(group.name(), group);
             Log.i("Registered Group", group.name());
         }
-        groups.get(group.name()).addOrUpdate(event);
+        groups.get(group.name()).addOrUpdate(event.setGroupName(group.name()));
         Log.i("Registered Event",event.name()+"[Group: "+group.name()+"]");
     }
+
     /**
      * Unregister an {@link Event}. uses:
      * <pre>
@@ -280,3 +291,4 @@ public class EventManager {
         return groups.get(group);
     }
 }
+//todo: Get running group name from event
