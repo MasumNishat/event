@@ -1,9 +1,11 @@
 package org.nishat.util.event;
 
-import org.nishat.util.log.Log;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -24,12 +26,12 @@ import java.util.concurrent.ConcurrentHashMap;
  *     EventManager.getInstance().registerEvent(evg, ev);
  *
  *     //check if {@link EventGroup} "bar" exist
- *     evg = EventManager.getInstance().getGroup("bar");
- *     if (evg != null) {
+ *     Optional&lt;EventGroup&gt; optEvg = EventManager.getInstance().getGroup("bar");
+ *     if (optEvg.isPresent()) {
  *          //retrieve {@link Event}
- *          ev = evg.getEvent("foo");
+ *          Optional&lt;Event&gt; optEv = optEvg.get().getEvent("foo");
  *          //check if {@link Event} is valid
- *          if (ev != null) {
+ *          if (optEv.isPresent()) {
  *              //create {@link Listener}
  *
  *              //register {@link Listener}
@@ -39,74 +41,78 @@ import java.util.concurrent.ConcurrentHashMap;
  *
  *      //call {@link Event}
  *      try {
- *             EventManager.getInstance().getEvent("foo").call(null);
- *         } catch (Throwable e) {
+ *             EventManager.getInstance().getEvent("foo").ifPresent(event -> {
+ *                 try {
+ *                     event.call(null);
+ *                 } catch (Throwable e) {
+ *                     e.printStackTrace();
+ *                 }
+ *             });
+ *         } catch (Exception e) {
  *             e.printStackTrace();
  *         }
  *
  *
  * </pre>
  */
-public class EventManager {
-    private static EventManager single_instance = null;
+public final class EventManager {
+    private static final Logger logger = LoggerFactory.getLogger(EventManager.class);
 
-    private final ConcurrentHashMap<String, EventGroup> groups = new ConcurrentHashMap<String, EventGroup>(){{
-        put("default", new EventGroup() {
-            /**
-             * Get name of {@link EventGroup}
-             * @return {@link String}
-             */
+    // Constants for default group names
+    public static final String DEFAULT_GROUP = "default";
+    public static final String SYSTEM_GROUP = "system";
+    public static final String TEMP_GROUP = "temp";
+
+    private static volatile EventManager instance;
+
+    private final ConcurrentHashMap<String, EventGroup> groups = new ConcurrentHashMap<>();
+
+    /**
+     * Get singleton instance of EventManager using double-checked locking.
+     *
+     * @return {@link EventManager}
+     */
+    public static EventManager getInstance() {
+        if (instance == null) {
+            synchronized (EventManager.class) {
+                if (instance == null) {
+                    instance = new EventManager();
+                }
+            }
+        }
+        return instance;
+    }
+
+    private EventManager() {
+        initializeDefaultGroups();
+    }
+
+    private void initializeDefaultGroups() {
+        groups.put(DEFAULT_GROUP, new EventGroup() {
             @Override
             public String name() {
-                return "default";
+                return DEFAULT_GROUP;
             }
         });
-        put("system", new EventGroup() {
-            /**
-             * Get name of {@link EventGroup}
-             * @return {@link String}
-             */
+
+        groups.put(SYSTEM_GROUP, new EventGroup() {
             @Override
             public String name() {
-                return "system";
+                return SYSTEM_GROUP;
             }
 
-            /**
-             * if this {@link EventGroup} is protected then delete operation will be disabled.
-             * <p>true: protected</p>
-             * <p>false: not protected</p>
-             * Default value is false
-             * @return boolean
-             */
             @Override
             public boolean isProtected() {
                 return true;
             }
         });
-        put("temp", new EventGroup() {
-            /**
-             * Get name of {@link EventGroup}
-             * @return {@link String}
-             */
+
+        groups.put(TEMP_GROUP, new EventGroup() {
             @Override
             public String name() {
-                return "temp";
+                return TEMP_GROUP;
             }
         });
-    }};
-
-    /**
-     * Initial Constructor
-     *
-     * @return {@link EventManager}
-     */
-    public static EventManager getInstance() {
-        if (single_instance == null)
-            single_instance = new EventManager();
-        return single_instance;
-    }
-
-    private EventManager() {
     }
 
     /**
@@ -119,15 +125,16 @@ public class EventManager {
      * @param event {@link Event}
      */
     public void registerEvent(Event event) {
-        Log.i("Registering Event",event.name());
-        Objects.requireNonNull(event);
-        if (event.getGroupNames().size() > 0)
-            throw new RuntimeException("Event: "+event.name()+" has predefined group. To register this event in " +
+        Objects.requireNonNull(event, "Event cannot be null");
+        logger.debug("Registering Event: {}", event.name());
+
+        if (!event.getGroupNames().isEmpty()) {
+            throw new EventException("Event: " + event.name() + " has predefined group. To register this event in " +
                     "different group, you should use registerEvent(String, Event) function.");
-        else {
-            registerEvent("default", event);
         }
-        Log.i("Registered Event",event.name());
+
+        registerEvent(DEFAULT_GROUP, event);
+        logger.info("Registered Event: {}", event.name());
     }
 
     /**
@@ -141,27 +148,28 @@ public class EventManager {
      * @param event {@link Event}
      */
     public void registerEvent(String group, Event event) {
-        Objects.requireNonNull(event);
-        Objects.requireNonNull(group);
-        if (group.trim().equals("")) throw new RuntimeException("Group should not be empty");
-        Log.i("Registering Event",event.name()+"[Group: "+group+"]");
+        Objects.requireNonNull(event, "Event cannot be null");
+        Objects.requireNonNull(group, "Group cannot be null");
+
+        if (group.trim().isEmpty()) {
+            throw new EventException("Group should not be empty");
+        }
+
+        logger.debug("Registering Event: {} [Group: {}]", event.name(), group);
 
         if (!groups.containsKey(group)) {
-            Log.i("Registering Group", group);
+            logger.debug("Registering Group: {}", group);
             groups.put(group, new EventGroup() {
-                /**
-                 * Get name of {@link EventGroup}
-                 * @return {@link String}
-                 */
                 @Override
                 public String name() {
                     return group;
                 }
             });
-            Log.i("Registered Group", group);
+            logger.info("Registered Group: {}", group);
         }
+
         groups.get(group).addOrUpdate(event.setGroupName(group));
-        Log.i("Registered Event",event.name()+"[Group: "+group+"]");
+        logger.info("Registered Event: {} [Group: {}]", event.name(), group);
     }
 
     /**
@@ -181,17 +189,19 @@ public class EventManager {
      * @param event {@link Event}
      */
     public void registerEvent(EventGroup group, Event event) {
-        Log.i("Registering Event",event.name()+"[Group: "+group.name()+"]");
-        Objects.requireNonNull(group);
-        Objects.requireNonNull(event);
+        Objects.requireNonNull(group, "Group cannot be null");
+        Objects.requireNonNull(event, "Event cannot be null");
+
+        logger.debug("Registering Event: {} [Group: {}]", event.name(), group.name());
 
         if (!groups.containsKey(group.name())) {
-            Log.i("Registering Group", group.name());
+            logger.debug("Registering Group: {}", group.name());
             groups.put(group.name(), group);
-            Log.i("Registered Group", group.name());
+            logger.info("Registered Group: {}", group.name());
         }
+
         groups.get(group.name()).addOrUpdate(event.setGroupName(group.name()));
-        Log.i("Registered Event",event.name()+"[Group: "+group.name()+"]");
+        logger.info("Registered Event: {} [Group: {}]", event.name(), group.name());
     }
 
     /**
@@ -203,7 +213,7 @@ public class EventManager {
      * @param eventName {@link String}
      */
     public void unregisterEvent(String eventName) {
-        unregisterEvent("default", eventName);
+        unregisterEvent(DEFAULT_GROUP, eventName);
     }
 
     /**
@@ -215,43 +225,56 @@ public class EventManager {
      * @param eventName {@link String}
      */
     public void unregisterEvent(String group, String eventName) {
-        Log.i("Unregistering Event",eventName+"[Group: "+group+"]");
-        Objects.requireNonNull(eventName);
-        if (eventName.trim().equals("")) throw new RuntimeException("eventName should not be empty");
-        Objects.requireNonNull(group);
-        if (group.trim().equals("")) throw new RuntimeException("Group should not be empty");
-        groups.get(group).remove(eventName);
-        Log.i("Unregistered Event",eventName+"[Group: "+group+"]");
+        Objects.requireNonNull(eventName, "Event name cannot be null");
+        Objects.requireNonNull(group, "Group cannot be null");
+
+        if (eventName.trim().isEmpty()) {
+            throw new EventException("Event name should not be empty");
+        }
+        if (group.trim().isEmpty()) {
+            throw new EventException("Group should not be empty");
+        }
+
+        logger.debug("Unregistering Event: {} [Group: {}]", eventName, group);
+
+        EventGroup eventGroup = groups.get(group);
+        if (eventGroup == null) {
+            throw new EventGroupNotFoundException(group);
+        }
+
+        eventGroup.remove(eventName);
+        logger.info("Unregistered Event: {} [Group: {}]", eventName, group);
     }
 
     /**
      * Get a registered {@link Event}. uses:
      * <pre>
-     *     Event ev = EventManager.getInstance().getEvent("foo");
+     *     Optional&lt;Event&gt; ev = EventManager.getInstance().getEvent("foo");
      * </pre>
      * by default {@link Event} will be pulled from "default" {@link EventGroup}
      * @param eventName {@link String}
-     * @return {@link Event}
+     * @return {@link Optional}&lt;{@link Event}&gt;
      */
-    public Event getEvent(String eventName) {
-        return getGroup("default").getEvent(eventName);
+    public Optional<Event> getEvent(String eventName) {
+        return getEvent(DEFAULT_GROUP, eventName);
     }
 
     /**
      * Get a registered {@link Event}. uses:
      * <pre>
-     *     Event ev = EventManager.getInstance().getEvent("bar", "foo");
+     *     Optional&lt;Event&gt; ev = EventManager.getInstance().getEvent("bar", "foo");
      * </pre>
      * @param group {@link String}
      * @param eventName {@link String}
-     * @return {@link Event}
+     * @return {@link Optional}&lt;{@link Event}&gt;
      */
-    public Event getEvent(String group, String eventName) {
-        return getGroup(group).getEvent(eventName);
+    public Optional<Event> getEvent(String group, String eventName) {
+        return getGroup(group)
+                .flatMap(g -> g.getEvent(eventName));
     }
 
     /**
-     * Move {@link Event} from one {@link EventGroup} to another {@link EventGroup}. both {@link EventGroup} must be existed. uses:
+     * Move {@link Event} from one {@link EventGroup} to another {@link EventGroup}. both {@link EventGroup} must exist. uses:
      * <pre>
      *     EventManager.getInstance().moveToGroup("bar1", "bar2", "foo");
      * </pre>
@@ -260,12 +283,26 @@ public class EventManager {
      * @param eventName {@link String}
      */
     public void moveToGroup(String fromGroup, String toGroup, String eventName) {
-        Log.i("Moving Event",eventName+"[From: "+fromGroup+"] [To: "+toGroup+"]");
-        if (groups.containsKey(fromGroup) && groups.containsKey(toGroup)) {
-            groups.get(toGroup).addOrUpdate(groups.get(fromGroup).getEvent(eventName));
-            groups.get(fromGroup).remove(eventName);
-        } else throw new RuntimeException("Group not found");
-        Log.i("Moved Event",eventName+"[From: "+fromGroup+"] [To: "+toGroup+"]");
+        Objects.requireNonNull(fromGroup, "From group cannot be null");
+        Objects.requireNonNull(toGroup, "To group cannot be null");
+        Objects.requireNonNull(eventName, "Event name cannot be null");
+
+        logger.debug("Moving Event: {} [From: {}] [To: {}]", eventName, fromGroup, toGroup);
+
+        if (!groups.containsKey(fromGroup)) {
+            throw new EventGroupNotFoundException(fromGroup);
+        }
+        if (!groups.containsKey(toGroup)) {
+            throw new EventGroupNotFoundException(toGroup);
+        }
+
+        Event event = groups.get(fromGroup).getEvent(eventName)
+                .orElseThrow(() -> new EventNotFoundException(eventName, fromGroup));
+
+        groups.get(toGroup).addOrUpdate(event);
+        groups.get(fromGroup).remove(eventName);
+
+        logger.info("Moved Event: {} [From: {}] [To: {}]", eventName, fromGroup, toGroup);
     }
 
     /**
@@ -282,13 +319,32 @@ public class EventManager {
     /**
      * Retrieve an {@link EventGroup}. Uses:
      * <pre>
-     *     EventGroup evg = getGroup("bar");
+     *     Optional&lt;EventGroup&gt; evg = getGroup("bar");
      * </pre>
      * @param group {@link String}
-     * @return {@link EventGroup} or null if event not exist
+     * @return {@link Optional}&lt;{@link EventGroup}&gt;
      */
-    public EventGroup getGroup(String group) {
-        return groups.get(group);
+    public Optional<EventGroup> getGroup(String group) {
+        return Optional.ofNullable(groups.get(group));
+    }
+
+    @Override
+    public String toString() {
+        return "EventManager{" +
+                "groups=" + groups.keySet() +
+                '}';
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        EventManager that = (EventManager) o;
+        return Objects.equals(groups, that.groups);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(groups);
     }
 }
-//todo: Get running group name from event

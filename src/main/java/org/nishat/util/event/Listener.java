@@ -1,5 +1,6 @@
 package org.nishat.util.event;
 
+import java.util.Objects;
 import java.util.UUID;
 
 /**
@@ -20,17 +21,22 @@ public abstract class Listener {
     private final String id;
 
     /**
-     * create new {@link Listener} with default id
+     * create new {@link Listener} with default UUID id
      */
     public Listener() {
-        id = UUID.randomUUID().toString();
+        this.id = UUID.randomUUID().toString();
     }
 
     /**
      * create new {@link Listener} with supplied id
      * @param id {@link String}
+     * @throws EventException if id is null or empty
      */
-    public Listener(String id){
+    public Listener(String id) {
+        Objects.requireNonNull(id, "Listener ID cannot be null");
+        if (id.trim().isEmpty()) {
+            throw new EventException("Listener ID cannot be empty");
+        }
         this.id = id;
     }
 
@@ -58,4 +64,24 @@ public abstract class Listener {
      * Execute before calling {@link Listener}
      */
     public void doBeforeCall() {}
+
+    @Override
+    public String toString() {
+        return "Listener{" +
+                "id='" + id + '\'' +
+                '}';
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Listener listener = (Listener) o;
+        return Objects.equals(id, listener.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id);
+    }
 }
