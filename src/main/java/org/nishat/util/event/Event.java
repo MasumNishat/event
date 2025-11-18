@@ -8,7 +8,6 @@ import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
 
 /**
  * {@link Event} is an {@link Event} to run {@link Listener}s. Example:
@@ -198,7 +197,7 @@ public final class Event {
 
             List<PrioritizedListener> sortedListeners = listeners.values().stream()
                     .sorted(Comparator.comparingInt(PrioritizedListener::getPriority).reversed())
-                    .collect(Collectors.toList());
+                    .toList();
 
             List<ListenerExecutionException> exceptions = new ArrayList<>();
 
