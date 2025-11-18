@@ -18,6 +18,7 @@ import java.util.UUID;
  * </pre>
  */
 public abstract class Listener {
+    /** The unique identifier for this listener. */
     private final String id;
 
     /**

@@ -49,20 +49,33 @@ import java.util.stream.Collectors;
  * </pre>
  */
 public final class Event {
+    /** Logger instance for this class. */
     private static final Logger logger = LoggerFactory.getLogger(Event.class);
+    /** Default priority value for listeners when priority is not specified. */
     private static final int DEFAULT_PRIORITY = 0;
 
+    /** The unique name of this event. */
     private final String name;
+    /** Thread-safe map storing listeners with their priorities, keyed by listener ID. */
     private final ConcurrentHashMap<String, PrioritizedListener> listeners = new ConcurrentHashMap<>();
+    /** Thread-local flag to control loop breaking in concurrent event calls. */
     private final ThreadLocal<AtomicBoolean> breakLoop = ThreadLocal.withInitial(AtomicBoolean::new);
+    /** List of group names this event belongs to. */
     private final List<String> groupName = Collections.synchronizedList(new ArrayList<>());
+    /** Lock for synchronizing event calls. */
     private final ReentrantLock callLock = new ReentrantLock();
+    /** Executor service for async event calls. */
     private final ExecutorService asyncExecutor;
+    /** Flag indicating whether to handle exceptions or propagate them. */
     private final boolean handleExceptions;
 
+    /** Hook to execute after each complete event call. */
     private volatile Consumer<Event> doAfterEachCall;
+    /** Hook to execute before each complete event call. */
     private volatile Consumer<Event> doBeforeEachCall;
+    /** Hook to execute after each individual listener call. */
     private volatile Consumer<Listener> doAfterEachListenerCall;
+    /** Hook to execute before each individual listener call. */
     private volatile Consumer<Listener> doBeforeEachListenerCall;
 
     /**
@@ -73,6 +86,12 @@ public final class Event {
         this(name, null, false);
     }
 
+    /**
+     * Private constructor used by the builder.
+     * @param name the event name
+     * @param executor the executor service for async operations (null to use ForkJoinPool)
+     * @param handleExceptions whether to handle exceptions during listener execution
+     */
     private Event(String name, ExecutorService executor, boolean handleExceptions) {
         Objects.requireNonNull(name, "Event name cannot be null");
         if (name.trim().isEmpty()) {
@@ -96,10 +115,17 @@ public final class Event {
      * Builder pattern for Event creation
      */
     public static class EventBuilder {
+        /** The event name. */
         private final String name;
+        /** Optional custom executor for async operations. */
         private ExecutorService executor;
+        /** Flag to enable exception handling during listener execution. */
         private boolean handleExceptions = false;
 
+        /**
+         * Private constructor for the builder.
+         * @param name the event name
+         */
         private EventBuilder(String name) {
             this.name = name;
         }
@@ -322,6 +348,11 @@ public final class Event {
         return false;
     }
 
+    /**
+     * Add a group name to this event. Package-private method used by EventManager.
+     * @param groupName the name of the group to add
+     * @return this event instance for chaining
+     */
     Event setGroupName(String groupName) {
         Objects.requireNonNull(groupName, "Group name cannot be null");
         if (groupName.trim().isEmpty()) {
@@ -414,18 +445,33 @@ public final class Event {
      * Internal class to hold listener with priority
      */
     private static class PrioritizedListener {
+        /** The listener instance. */
         private final Listener listener;
+        /** The priority value for this listener. */
         private final int priority;
 
+        /**
+         * Create a prioritized listener.
+         * @param listener the listener instance
+         * @param priority the priority value
+         */
         public PrioritizedListener(Listener listener, int priority) {
             this.listener = listener;
             this.priority = priority;
         }
 
+        /**
+         * Get the listener instance.
+         * @return the listener
+         */
         public Listener getListener() {
             return listener;
         }
 
+        /**
+         * Get the priority value.
+         * @return the priority
+         */
         public int getPriority() {
             return priority;
         }
