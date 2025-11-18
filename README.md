@@ -32,7 +32,7 @@ A modern, thread-safe event listener library for Java 17+ that provides flexible
 <dependency>
     <groupId>org.nishat.util</groupId>
     <artifactId>event</artifactId>
-    <version>2.0.1-SNAPSHOT</version>
+    <version>3.0.0</version>
 </dependency>
 
 <!-- SLF4J implementation (choose one) -->
@@ -46,7 +46,7 @@ A modern, thread-safe event listener library for Java 17+ that provides flexible
 ### Gradle
 
 ```gradle
-implementation 'org.nishat.util:event:2.0.1-SNAPSHOT'
+implementation 'org.nishat.util:event:3.0.0'
 implementation 'org.slf4j:slf4j-simple:2.0.16'
 ```
 
