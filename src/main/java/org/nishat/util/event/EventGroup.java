@@ -1,6 +1,7 @@
 package org.nishat.util.event;
 
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -14,9 +15,10 @@ import java.util.concurrent.ConcurrentHashMap;
  *             }
  *         };
  *     //check if an event "foo" exist in this event group
- *     if (evg.getEvent("foo") != null) {
+ *     Optional&lt;Event&gt; event = evg.getEvent("foo");
+ *     if (event.isPresent()) {
  *         //remove event "foo"
- *         evg.remove("foo);
+ *         evg.remove("foo");
  *     }
  *
  *     //check if group is protected
@@ -47,26 +49,61 @@ public abstract class EventGroup {
     }
 
     final void addOrUpdate(Event event) {
+        Objects.requireNonNull(event, "Event cannot be null");
         eventHashMap.put(event.name(), event);
     }
 
     /**
      * remove {@link Event} from {@link EventGroup}
      * @param eventName {@link String}
+     * @throws ProtectedGroupException if the group is protected
+     * @throws EventNotFoundException if the event doesn't exist
      */
     final void remove(String eventName) {
-        Objects.requireNonNull(eventName);
-        if (isProtected()) throw new RuntimeException("Cannot remove event from protected group");
-        eventHashMap.get(eventName).removeGroup(name());
+        Objects.requireNonNull(eventName, "Event name cannot be null");
+
+        if (isProtected()) {
+            throw new ProtectedGroupException(name());
+        }
+
+        Event event = eventHashMap.get(eventName);
+        if (event == null) {
+            throw new EventNotFoundException(eventName, name());
+        }
+
+        event.removeGroup(name());
         eventHashMap.remove(eventName);
     }
 
     /**
      * get {@link Event} from {@link EventGroup}
      * @param eventName {@link String}
-     * @return {@link Event} or null if {@link Event} not exist
+     * @return {@link Optional}&lt;{@link Event}&gt;
      */
-    public final Event getEvent(String eventName) {
-        return eventHashMap.get(eventName);
+    public final Optional<Event> getEvent(String eventName) {
+        return Optional.ofNullable(eventHashMap.get(eventName));
+    }
+
+    @Override
+    public String toString() {
+        return "EventGroup{" +
+                "name='" + name() + '\'' +
+                ", protected=" + isProtected() +
+                ", events=" + eventHashMap.keySet() +
+                '}';
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        EventGroup that = (EventGroup) o;
+        return Objects.equals(name(), that.name()) &&
+                Objects.equals(eventHashMap, that.eventHashMap);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(name(), eventHashMap);
     }
 }
