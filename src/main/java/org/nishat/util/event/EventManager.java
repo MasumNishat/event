@@ -58,9 +58,13 @@ import java.util.concurrent.ConcurrentHashMap;
 public final class EventManager {
     private static final Logger logger = LoggerFactory.getLogger(EventManager.class);
 
-    // Constants for default group names
+    /** The default event group name. Events are registered in this group unless otherwise specified. */
     public static final String DEFAULT_GROUP = "default";
+
+    /** The system event group name. This is a protected group that cannot be modified. */
     public static final String SYSTEM_GROUP = "system";
+
+    /** The temporary event group name. Used for temporary events that may be cleaned up. */
     public static final String TEMP_GROUP = "temp";
 
     private static volatile EventManager instance;

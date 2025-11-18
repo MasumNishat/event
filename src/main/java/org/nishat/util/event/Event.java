@@ -331,6 +331,12 @@ public final class Event {
         return this;
     }
 
+    /**
+     * Gets the names of all groups this event belongs to.
+     * The returned list is unmodifiable.
+     *
+     * @return an unmodifiable list of group names
+     */
     public List<String> getGroupNames() {
         return Collections.unmodifiableList(new ArrayList<>(groupName));
     }

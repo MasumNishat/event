@@ -32,6 +32,14 @@ public abstract class EventGroup {
     private final ConcurrentHashMap<String, Event> eventHashMap = new ConcurrentHashMap<>();
 
     /**
+     * Default constructor for EventGroup.
+     * Subclasses must implement the {@link #name()} method.
+     */
+    public EventGroup() {
+        // Default constructor
+    }
+
+    /**
      * Get name of {@link EventGroup}
      * @return {@link String}
      */
