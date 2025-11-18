@@ -29,7 +29,16 @@ import java.util.concurrent.ConcurrentHashMap;
  * </pre>
  */
 public abstract class EventGroup {
+    /** Thread-safe map storing events in this group, keyed by event name. */
     private final ConcurrentHashMap<String, Event> eventHashMap = new ConcurrentHashMap<>();
+
+    /**
+     * Default constructor for EventGroup.
+     * Subclasses must implement the {@link #name()} method.
+     */
+    public EventGroup() {
+        // Default constructor
+    }
 
     /**
      * Get name of {@link EventGroup}
@@ -48,6 +57,10 @@ public abstract class EventGroup {
         return false;
     }
 
+    /**
+     * Add or update an event in this group. Package-private method used by EventManager.
+     * @param event the event to add or update
+     */
     final void addOrUpdate(Event event) {
         Objects.requireNonNull(event, "Event cannot be null");
         eventHashMap.put(event.name(), event);

@@ -56,15 +56,22 @@ import java.util.concurrent.ConcurrentHashMap;
  * </pre>
  */
 public final class EventManager {
+    /** Logger instance for this class. */
     private static final Logger logger = LoggerFactory.getLogger(EventManager.class);
 
-    // Constants for default group names
+    /** The default event group name. Events are registered in this group unless otherwise specified. */
     public static final String DEFAULT_GROUP = "default";
+
+    /** The system event group name. This is a protected group that cannot be modified. */
     public static final String SYSTEM_GROUP = "system";
+
+    /** The temporary event group name. Used for temporary events that may be cleaned up. */
     public static final String TEMP_GROUP = "temp";
 
+    /** Singleton instance using double-checked locking pattern. */
     private static volatile EventManager instance;
 
+    /** Thread-safe map storing all event groups, keyed by group name. */
     private final ConcurrentHashMap<String, EventGroup> groups = new ConcurrentHashMap<>();
 
     /**
@@ -83,10 +90,17 @@ public final class EventManager {
         return instance;
     }
 
+    /**
+     * Private constructor to prevent direct instantiation.
+     * Initializes the default event groups.
+     */
     private EventManager() {
         initializeDefaultGroups();
     }
 
+    /**
+     * Initialize the default event groups (default, system, and temp).
+     */
     private void initializeDefaultGroups() {
         groups.put(DEFAULT_GROUP, new EventGroup() {
             @Override
