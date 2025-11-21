@@ -102,6 +102,14 @@
                     </execution>
                 </executions>
             </plugin>
+
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-site-plugin</artifactId>
+                <version>3.12.1</version>
+            </plugin>
+
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
@@ -116,7 +124,20 @@
                     </execution>
                 </executions>
                 <configuration>
+                    <windowtitle>${project.name} API</windowtitle>
+                    <doctitle><![CDATA[<h1>${project.name} API Documentation</h1>]]></doctitle>
+                    <bottom><![CDATA[Copyright © 2024. All Rights Reserved.]]></bottom>
+                    <links>
+                        <link>https://docs.oracle.com/javase/8/docs/api/</link>
+                    </links>
+                    <!-- Critical fixes for navigation -->
+                    <nohelp>false</nohelp>
                     <debug>true</debug>
+                    <splitindex>true</splitindex>
+                    <author>true</author>
+                    <version>true</version>
+                    <use>true</use>
+                    <helpfile>${basedir}/src/main/javadoc/help-doc.html</helpfile>
                     <tags>
                         <tag>
                             <name>implSpec</name>
